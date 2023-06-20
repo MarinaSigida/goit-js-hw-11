@@ -1,5 +1,7 @@
 import axios from 'axios';
 import Notiflix from 'notiflix';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 
 const url = 'https://pixabay.com/api/';
 const apiKey = '37296987-0578aa7746439ec510be3d7ed';
@@ -9,18 +11,33 @@ const refs = {
   searchQuery: document.querySelector('input[name="searchQuery"]'),
   gallery: document.querySelector('.gallery'),
   error: document.querySelector('p.error'),
+  loadMoreBtn: document.querySelector('button[type="button"]'),
+  endOfSearchMessage: document.querySelector(
+    '[data-message="end-of-search-results"]'
+  ),
 };
 
+let page;
+
 refs.error.classList.add('hidden');
+refs.endOfSearchMessage.classList.add('hidden');
+refs.loadMoreBtn.classList.add('hidden');
 
-
-refs.searchForm.addEventListener('submit', async function (event) {
+refs.searchForm.addEventListener('submit', function (event) {
   event.preventDefault();
+  refs.loadMoreBtn.classList.add('hidden');
+  refs.gallery.innerHTML = '';
+  loadPictures(refs.searchQuery.value, (page = 1));
+});
+
+async function loadPictures(searchQuery, page, perPage = 40) {
   let data = {
     key: apiKey,
-    q: refs.searchQuery.value,
+    q: searchQuery,
     image_type: 'photo',
     orientation: 'horizontal',
+    per_page: perPage,
+    page: page,
     safesearch: true,
   };
   try {
@@ -28,9 +45,18 @@ refs.searchForm.addEventListener('submit', async function (event) {
       url + '?' + new URLSearchParams(data).toString()
     );
     renderGallery(response.data.hits);
+    Notiflix.Notify.info(`Hooray! We found ${response.data.totalHits} images.`);
+    if (response.data.totalHits <= perPage * page) {
+      Notiflix.Notify.info(refs.endOfSearchMessage.innerHTML);
+      refs.loadMoreBtn.classList.add('hidden');
+    }
   } catch (error) {
     console.error(error);
   }
+}
+
+refs.loadMoreBtn.addEventListener('click', function (event) {
+  loadPictures(refs.searchQuery.value, ++page);
 });
 
 function renderGallery(pictures) {
@@ -41,7 +67,9 @@ function renderGallery(pictures) {
     picture =>
       `
       <div class="photo-card">
+      <a class="gallery-link" href=${picture.largeImageURL} >
       <img src="${picture.webformatURL}" alt="${picture.tags}" loading="lazy" />
+      </a>
       <div class="info">
         <p class="info-item">
           <b>Likes</b>
@@ -63,5 +91,14 @@ function renderGallery(pictures) {
     </div>
             `
   );
-  refs.gallery.innerHTML = pictureInfo.join('');
+  refs.gallery.innerHTML += pictureInfo.join('');
+  refs.loadMoreBtn.classList.remove('hidden');
 }
+
+// Modal window with simple ligthbox
+const lightbox = new SimpleLightbox('.gallery a', {
+  // captionType: text,
+  captionsData: 'alt',
+  captionPosition: 'bottom',
+  captionsDelay: 250,
+});
