@@ -46,12 +46,15 @@ async function loadPictures(searchQuery, page, perPage = 40) {
       url + '?' + new URLSearchParams(data).toString()
     );
     renderGallery(response.data.hits);
-    if (page === 1) {
+    if (page === 1 && response.data.totalHits > 0) {
       Notiflix.Notify.info(
         `Hooray! We found ${response.data.totalHits} images.`
       );
     }
-    if (response.data.totalHits <= perPage * page) {
+    if (
+      response.data.totalHits <= perPage * page &&
+      response.data.totalHits > 0
+    ) {
       Notiflix.Notify.info(refs.endOfSearchMessage.innerHTML);
       refs.loadMoreBtn.classList.add('hidden');
     }
@@ -67,31 +70,34 @@ refs.loadMoreBtn.addEventListener('click', function (event) {
 function renderGallery(pictures) {
   if (pictures.length === 0) {
     Notiflix.Notify.failure(refs.error.innerHTML);
+    refs.loadMoreBtn.classList.add('hidden');
   }
   let pictureInfo = pictures.map(
     picture =>
       `
       <div class="photo-card">
+      <div class="photo-thumb">
       <a class="gallery-link" href=${picture.largeImageURL} >
       <img src="${picture.webformatURL}" alt="${picture.tags}" loading="lazy" />
       </a>
+      </div>
       <div class="info">
-        <p class="info-item">
+        <div class="info-item">
           <b>Likes</b>
-          <p>"${picture.likes}"</p>
-        </p>
-        <p class="info-item">
+          <p>${picture.likes}</p>
+        </div>
+        <div class="info-item">
           <b>Views</b>
-          <p>"${picture.views}"</p>
-        </p>
-        <p class="info-item">
+          <p>${picture.views}</p>
+        </div>
+        <div class="info-item">
           <b>Comments</b>
-          <p>"${picture.comments}"</p>
-        </p>
-        <p class="info-item">
+          <p>${picture.comments}</p>
+        </div>
+        <div class="info-item">
           <b>Downloads</b>
-          <p>"${picture.downloads}"</p>
-        </p>
+          <p>${picture.downloads}</p>
+        </div>
       </div>
     </div>
             `
@@ -103,18 +109,19 @@ function renderGallery(pictures) {
       refs.gallery.firstElementChild.getBoundingClientRect();
 
     window.scrollBy({
-      top: cardHeight * (page-1)*40,
+      top: cardHeight * (page - 1) * 40,
       behavior: 'smooth',
     });
   }
 
   lightbox = new SimpleLightbox('.gallery a', {
-    captionsData: 'alt',
-    captionPosition: 'bottom',
-    captionsDelay: 250,
+    // captionsData: 'alt',
+    // captionPosition: 'bottom',
+    // captionsDelay: 250,
   });
 
   lightbox.refresh();
-
-  refs.loadMoreBtn.classList.remove('hidden');
+  if (pictures.length !== 0) {
+    refs.loadMoreBtn.classList.remove('hidden');
+  }
 }
