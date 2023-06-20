@@ -18,6 +18,7 @@ const refs = {
 };
 
 let page;
+let lightbox;
 
 refs.error.classList.add('hidden');
 refs.endOfSearchMessage.classList.add('hidden');
@@ -45,7 +46,11 @@ async function loadPictures(searchQuery, page, perPage = 40) {
       url + '?' + new URLSearchParams(data).toString()
     );
     renderGallery(response.data.hits);
-    Notiflix.Notify.info(`Hooray! We found ${response.data.totalHits} images.`);
+    if (page === 1) {
+      Notiflix.Notify.info(
+        `Hooray! We found ${response.data.totalHits} images.`
+      );
+    }
     if (response.data.totalHits <= perPage * page) {
       Notiflix.Notify.info(refs.endOfSearchMessage.innerHTML);
       refs.loadMoreBtn.classList.add('hidden');
@@ -92,13 +97,24 @@ function renderGallery(pictures) {
             `
   );
   refs.gallery.innerHTML += pictureInfo.join('');
+
+  if (page > 1) {
+    const { height: cardHeight } =
+      refs.gallery.firstElementChild.getBoundingClientRect();
+
+    window.scrollBy({
+      top: cardHeight * (page-1)*40,
+      behavior: 'smooth',
+    });
+  }
+
+  lightbox = new SimpleLightbox('.gallery a', {
+    captionsData: 'alt',
+    captionPosition: 'bottom',
+    captionsDelay: 250,
+  });
+
+  lightbox.refresh();
+
   refs.loadMoreBtn.classList.remove('hidden');
 }
-
-// Modal window with simple ligthbox
-const lightbox = new SimpleLightbox('.gallery a', {
-  // captionType: text,
-  captionsData: 'alt',
-  captionPosition: 'bottom',
-  captionsDelay: 250,
-});
